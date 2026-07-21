@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Picture of the Day - NASA APOD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a1a;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 20px 20px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #ffd93d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #8892b0;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        input[type="date"] {
+            padding: 12px 20px;
+            border: 2px solid #1e2a4a;
+            border-radius: 10px;
+            background: #0d1117;
+            color: #ffffff;
+            font-size: 16px;
+            outline: none;
+        }
+
+        input[type="date"]:focus {
+            border-color: #ff6b6b;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        button.secondary {
+            background: linear-gradient(45deg, #4834d4, #686de0);
+        }
+
+        button.secondary:hover {
+            box-shadow: 0 5px 20px rgba(72, 52, 212, 0.4);
+        }
+
+        .card {
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid #1e2a4a;
+            border-radius: 20px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+        }
+
+        .media-container {
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            max-height: 600px;
+            overflow: hidden;
+        }
+
+        .media-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            cursor: pointer;
+        }
+
+        .media-container iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .title {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            color: #ffd93d;
+        }
+
+        .date-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid #ff6b6b;
+            border-radius: 20px;
+            color: #ff6b6b;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .explanation {
+            line-height: 1.8;
+            color: #8892b0;
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        .copyright {
+            color: #506080;
+            font-style: italic;
+            padding-top: 20px;
+            border-top: 1px solid #1e2a4a;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #1e2a4a;
+            border-top: 3px solid #ff6b6b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid #ff6b6b;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            color: #ff6b6b;
+            margin: 20px 0;
+        }
+
+        .error button {
+            margin-top: 15px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #506080;
+            font-size: 0.9em;
+        }
+
+        footer a {
+            color: #ffd93d;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .title {
+                font-size: 1.4em;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            input[type="date"] {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+    
+    <div class="container">
+        <header>
+            <h1>🌌 Space Picture of the Day</h1>
+            <p class="subtitle">Discover the cosmos! Each day a different image of our fascinating universe.</p>
+        </header>
+
+        <div class="controls">
+            <input type="date" id="datePicker" placeholder="Select date">
+            <button onclick="loadSpecificDate()">🔍 Search Date</button>
+            <button class="secondary" onclick="loadToday()">📅 Today's Picture</button>
+            <button class="secondary" onclick="randomDate()">🎲 Random Discovery</button>
+        </div>
+
+        <div id="content">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading today's space picture...</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>Data provided by <a href="https://apod.nasa.gov/" target="_blank">NASA Astronomy Picture of the Day</a></p>
+            <p>Powered by <a href="https://aws.amazon.com/lambda/" target="_blank">AWS Lambda</a> | 
+               Hosted on <a href="https://pages.github.com/" target="_blank">GitHub Pages</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // 🔴 REPLACE THIS URL with your Lambda Function URL
+        const LAMBDA_URL = 'https://qfpw4wkux5l3g5pka45mcj35kq0czwqm.lambda-url.ap-south-1.on.aws/';
+        
+        // Set max date to today
+        document.getElementById('datePicker').max = new Date().toISOString().split('T')[0];
+        
+        // Load today's picture on page load
+        window.addEventListener('load', loadToday);
+
+        async function fetchAPOD(date = null) {
+            try {
+                let url = LAMBDA_URL;
+                if (date) {
+                    url += `?date=${date}`;
+                }
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP ${response.status}: Could not fetch data`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                if (error.message.includes('Failed to fetch')) {
+                    throw new Error('Cannot connect to server. Please check your internet connection.');
+                }
+                throw error;
+            }
+        }
+
+        function displayAPOD(data) {
+            const container = document.getElementById('content');
+            
+            // Handle different media types
+            let mediaHTML = '';
+            if (data.media_type === 'image') {
+                mediaHTML = `
+                    <img src="${data.hdurl || data.url}" 
+                         alt="${data.title}" 
+                         loading="lazy"
+                         onclick="window.open('${data.hdurl || data.url}', '_blank')"
+                         title="Click to view full size">
+                `;
+            } else if (data.media_type === 'video') {
+                // Extract video ID for YouTube
+                let videoUrl = data.url;
+                if (data.url.includes('youtube.com/watch')) {
+                    const videoId = new URL(data.url).searchParams.get('v');
+                    videoUrl = `https://www.youtube.com/embed/${videoId}`;
+                } else if (data.url.includes('vimeo.com')) {
+                    const vimeoId = data.url.split('/').pop();
+                    videoUrl = `https://player.vimeo.com/video/${vimeoId}`;
+                }
+                mediaHTML = `<iframe src="${videoUrl}" allowfullscreen></iframe>`;
+            }
+            
+            container.innerHTML = `
+                <div class="card">
+                    <div class="media-container">
+                        ${mediaHTML}
+                    </div>
+                    <div class="content">
+                        <h2 class="title">${data.title}</h2>
+                        <span class="date-badge">📅 ${data.date}</span>
+                        <p class="explanation">${data.explanation}</p>
+                        ${data.copyright ? `<p class="copyright">📸 Image Credit & Copyright: ${data.copyright}</p>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            // Update date picker
+            document.getElementById('datePicker').value = data.date;
+            
+            // Scroll to top smoothly
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showLoading() {
+            document.getElementById('content').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Exploring the universe...</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            document.getElementById('content').innerHTML = `
+                <div class="error">
+                    <p>❌ ${message}</p>
+                    <button onclick="loadToday()">Try Today's Picture</button>
+                    <button class="secondary" onclick="randomDate()" style="margin-left: 10px;">Try Random Date</button>
+                </div>
+            `;
+        }
+
+        async function loadToday() {
+            showLoading();
+            document.getElementById('datePicker').value = '';
+            try {
+                const data = await fetchAPOD();
+                displayAPOD(data);
+            } catch (error) {
+                showError(error.message || 'Failed to load today\'s picture. Please try again later.');
+                console.error('Error:', error);
+            }
+        }
+
+        async function loadSpecificDate() {
+            const date = document.getElementById('datePicker').value;
+            if (!date) {
+                alert('Please select a date first! 📅');
+                return;
+            }
+            
+            // Validate date is not in the future
+            const selectedDate = new Date(date);
+            const today = new Date();
+            if (selectedDate > today) {
+                alert('Cannot view future dates! Please select today or a past date. 🔮');
+                return;
+            }
+            
+            // Validate date is not before APOD started (June 16, 1995)
+            const apodStart = new Date('1995-06-16');
+            if (selectedDate < apodStart) {
+                alert('APOD started on June 16, 1995. Please select a date after that! 📅');
+                return;
+            }
+            
+            showLoading();
+            try {
+                const data = await fetchAPOD(date);
+                displayAPOD(data);
+            } catch (error) {
+                showError('No picture available for ' + date + '. Try another date!');
+            }
+        }
+
+        function randomDate() {
+            // APOD started on June 16, 1995
+            const start = new Date('1995-06-16');
+            const end = new Date();
+            const randomTime = start.getTime() + Math.random() * (end.getTime() - start.getTime());
+            const randomDate = new Date(randomTime).toISOString().split('T')[0];
+            
+            document.getElementById('datePicker').value = randomDate;
+            loadSpecificDate();
+        }
+
+        // Handle Enter key in date picker
+        document.getElementById('datePicker').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loadSpecificDate();
+            }
+        });
+        
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 't' && e.ctrlKey) {
+                e.preventDefault();
+                loadToday();
+            } else if (e.key === 'r' && e.ctrlKey) {
+                e.preventDefault();
+                randomDate();
+            }
+        });
+    </script>
+</body>
+</html>
