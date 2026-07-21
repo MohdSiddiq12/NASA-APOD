@@ -273,70 +273,82 @@
 
         <footer>
             <p>Data provided by <a href="https://apod.nasa.gov/" target="_blank">NASA Astronomy Picture of the Day</a></p>
-            <p>Powered by <a href="https://aws.amazon.com/lambda/" target="_blank">AWS Lambda</a> | 
+            <p>Powered by <a href="https://api.nasa.gov/" target="_blank">NASA APOD API</a> | 
                Hosted on <a href="https://pages.github.com/" target="_blank">GitHub Pages</a></p>
         </footer>
     </div>
 
     <script>
-    // Your Lambda Function URL
-    const LAMBDA_URL = 'https://qfpw4wkux5l3g5pka45mcj35kq0czwqm.lambda-url.ap-south-1.on.aws/';
-    
-    // Get the date picker and set max to today
+    const NASA_API_URL = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
     const datePicker = document.getElementById('datePicker');
     datePicker.max = new Date().toISOString().split('T')[0];
-    
-    // ====== PREVENT AUTOFILL BUG ======
-    // Clear any autofilled value on page load
     datePicker.value = '';
-    // Disable autocomplete to stop browser from filling past dates
     datePicker.setAttribute('autocomplete', 'off');
-    
-    // Also clear after a short delay (browsers fill after load event)
     setTimeout(() => { datePicker.value = ''; }, 200);
-    
-    // ====== LOAD TODAY'S PICTURE ON PAGE LOAD ======
+
     window.addEventListener('load', function() {
-        datePicker.value = ''; // ensure empty
+        datePicker.value = '';
         loadToday();
     });
 
-    // ====== FETCH FROM LAMBDA ======
+    function escapeHtml(value = '') {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     async function fetchAPOD(date = null) {
         try {
-            let url = LAMBDA_URL;
+            let url = NASA_API_URL;
             if (date && date.trim() !== '') {
-                url += `?date=${date.trim()}`;
+                url += `&date=${date.trim()}`;
             }
-            console.log('Fetching:', url);
-            
+
             const response = await fetch(url);
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || data.error || 'Failed to fetch data');
+            const contentType = response.headers.get('content-type') || '';
+            let data;
+
+            if (contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                data = await response.text();
             }
-            
-            console.log('Success:', data);
+
+            if (!response.ok) {
+                const message = typeof data === 'string'
+                    ? data
+                    : (data?.message || data?.error?.message || 'Failed to fetch data');
+                throw new Error(message);
+            }
+
+            if (typeof data !== 'object' || data === null) {
+                throw new Error('The server returned an unexpected response.');
+            }
+
             return data;
         } catch (error) {
-            console.error('Error:', error);
             if (error.message.includes('Failed to fetch')) {
-                throw new Error('Cannot connect to server. Check your internet connection.');
+                throw new Error('Cannot connect to the NASA service. Check your internet connection.');
             }
             throw error;
         }
     }
 
-    // ====== DISPLAY THE APOD ======
     function displayAPOD(data) {
         const container = document.getElementById('content');
-        
+        const safeTitle = escapeHtml(data.title || 'NASA APOD');
+        const safeExplanation = escapeHtml(data.explanation || '');
+        const safeCopyright = escapeHtml(data.copyright || '');
+        const imageUrl = data.hdurl || data.url || '';
+
         let mediaHTML = '';
         if (data.media_type === 'image') {
-            mediaHTML = `<img src="${data.hdurl || data.url}" 
-                              alt="${data.title}" 
-                              onclick="window.open('${data.hdurl || data.url}', '_blank')"
+            mediaHTML = `<img src="${imageUrl}" 
+                              alt="${safeTitle}" 
+                              onclick="window.open('${imageUrl}', '_blank')"
                               title="Click to view full size">`;
         } else if (data.media_type === 'video') {
             let videoUrl = data.url;
@@ -354,10 +366,10 @@
             <div class="card">
                 <div class="media-container">${mediaHTML}</div>
                 <div class="content">
-                    <h2 class="title">${data.title}</h2>
+                    <h2 class="title">${safeTitle}</h2>
                     <span class="date-badge">📅 ${data.date}</span>
-                    <p class="explanation">${data.explanation}</p>
-                    ${data.copyright ? `<p class="copyright">📸 Image Credit & Copyright: ${data.copyright}</p>` : ''}
+                    <p class="explanation">${safeExplanation}</p>
+                    ${data.copyright ? `<p class="copyright">📸 Image Credit & Copyright: ${safeCopyright}</p>` : ''}
                 </div>
             </div>
         `;
@@ -366,7 +378,6 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ====== UI HELPERS ======
     function showLoading() {
         document.getElementById('content').innerHTML = `
             <div class="loading">
@@ -384,7 +395,6 @@
             </div>`;
     }
 
-    // ====== USER ACTIONS ======
     async function loadToday() {
         showLoading();
         datePicker.value = '';
@@ -433,8 +443,6 @@
         loadSpecificDate();
     }
 
-    // ====== EVENT LISTENERS ======
-    // IMPORTANT: No automatic loading on date change! Only via button or Enter key.
     datePicker.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             loadSpecificDate();
