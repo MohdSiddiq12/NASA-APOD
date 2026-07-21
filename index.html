@@ -301,31 +301,40 @@
     });
 
     async function fetchAPOD(date = null) {
-        try {
-            let url = LAMBDA_URL;
-            if (date && date.trim() !== '') {
-                url += `?date=${date.trim()}`;
-            }
-            
-            console.log('Fetching:', url);
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: Could not fetch data`);
-            }
-            
-            const data = await response.json();
-            console.log('Success:', data);
-            return data;
-        } catch (error) {
-            console.error('Fetch error:', error);
-            if (error.message.includes('Failed to fetch')) {
-                throw new Error('Cannot connect to server. Check your internet connection.');
-            }
-            throw error;
+    try {
+        let url = LAMBDA_URL;
+        if (date && date.trim() !== '') {
+            url += `?date=${date.trim()}`;
         }
+
+        console.log('Fetching:', url);
+
+        const response = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',           // explicit
+            cache: 'no-cache'
+        });
+
+        console.log('Response status:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error body:', errorText);
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Success:', data);
+        return data;
+
+    } catch (error) {
+        console.error('Full fetch error:', error);
+        if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+            throw new Error('Cannot connect to server. Check your internet / firewall / extensions.');
+        }
+        throw error;
     }
+}
 
     function displayAPOD(data) {
         const container = document.getElementById('content');
