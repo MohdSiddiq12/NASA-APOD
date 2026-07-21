@@ -279,175 +279,188 @@
     </div>
 
     <script>
-        // 🔴 REPLACE THIS URL with your Lambda Function URL
-        const LAMBDA_URL = 'https://qfpw4wkux5l3g5pka45mcj35kq0czwqm.lambda-url.ap-south-1.on.aws/';
+        // // 🔴 REPLACE THIS URL with your Lambda Function URL
+        // const LAMBDA_URL = 'https://qfpw4wkux5l3g5pka45mcj35kq0czwqm.lambda-url.ap-south-1.on.aws/';
+        // <script>
+    // 🔴 REPLACE THIS URL with your Lambda Function URL
+    const LAMBDA_URL = 'https://qfpw4wkux5l3g5pka45mcj35kq0czwqm.lambda-url.ap-south-1.on.aws/';
+    
+    // Set max date to today
+    const datePicker = document.getElementById('datePicker');
+    datePicker.max = new Date().toISOString().split('T')[0];
+    datePicker.value = ''; // Clear any autofill immediately
+    
+    // Prevent autofill from triggering change event on load
+    let isPageLoaded = false;
+    
+    // Load today's picture on page load
+    window.addEventListener('load', function() {
+        isPageLoaded = true;
+        datePicker.value = ''; // Ensure empty
+        loadToday();
+    });
+
+    async function fetchAPOD(date = null) {
+        try {
+            let url = LAMBDA_URL;
+            if (date && date.trim() !== '') {
+                url += `?date=${date.trim()}`;
+            }
+            
+            console.log('Fetching:', url);
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: Could not fetch data`);
+            }
+            
+            const data = await response.json();
+            console.log('Success:', data);
+            return data;
+        } catch (error) {
+            console.error('Fetch error:', error);
+            if (error.message.includes('Failed to fetch')) {
+                throw new Error('Cannot connect to server. Check your internet connection.');
+            }
+            throw error;
+        }
+    }
+
+    function displayAPOD(data) {
+        const container = document.getElementById('content');
         
-        // Set max date to today
-        document.getElementById('datePicker').max = new Date().toISOString().split('T')[0];
+        let mediaHTML = '';
+        if (data.media_type === 'image') {
+            mediaHTML = `
+                <img src="${data.hdurl || data.url}" 
+                     alt="${data.title}" 
+                     loading="lazy"
+                     onclick="window.open('${data.hdurl || data.url}', '_blank')"
+                     title="Click to view full size">
+            `;
+        } else if (data.media_type === 'video') {
+            let videoUrl = data.url;
+            if (data.url.includes('youtube.com/watch')) {
+                const videoId = new URL(data.url).searchParams.get('v');
+                videoUrl = `https://www.youtube.com/embed/${videoId}`;
+            } else if (data.url.includes('vimeo.com')) {
+                const vimeoId = data.url.split('/').pop();
+                videoUrl = `https://player.vimeo.com/video/${vimeoId}`;
+            }
+            mediaHTML = `<iframe src="${videoUrl}" allowfullscreen></iframe>`;
+        }
         
-        // Load today's picture on page load
-        window.addEventListener('load', loadToday);
-
-                async function fetchAPOD(date = null) {
-            try {
-                let url = LAMBDA_URL;
-                if (date) {
-                    url += `?date=${date}`;
-                }
-                
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || `HTTP ${response.status}: Could not fetch data`);
-                }
-                
-                return await response.json();
-            } catch (error) {
-                if (error.message.includes('Failed to fetch')) {
-                    throw new Error('Cannot connect to server. Please check your internet connection.');
-                }
-                throw error;
-            }
-        }
-
-        function displayAPOD(data) {
-            const container = document.getElementById('content');
-            
-            // Handle different media types
-            let mediaHTML = '';
-            if (data.media_type === 'image') {
-                mediaHTML = `
-                    <img src="${data.hdurl || data.url}" 
-                         alt="${data.title}" 
-                         loading="lazy"
-                         onclick="window.open('${data.hdurl || data.url}', '_blank')"
-                         title="Click to view full size">
-                `;
-            } else if (data.media_type === 'video') {
-                // Extract video ID for YouTube
-                let videoUrl = data.url;
-                if (data.url.includes('youtube.com/watch')) {
-                    const videoId = new URL(data.url).searchParams.get('v');
-                    videoUrl = `https://www.youtube.com/embed/${videoId}`;
-                } else if (data.url.includes('vimeo.com')) {
-                    const vimeoId = data.url.split('/').pop();
-                    videoUrl = `https://player.vimeo.com/video/${vimeoId}`;
-                }
-                mediaHTML = `<iframe src="${videoUrl}" allowfullscreen></iframe>`;
-            }
-            
-            container.innerHTML = `
-                <div class="card">
-                    <div class="media-container">
-                        ${mediaHTML}
-                    </div>
-                    <div class="content">
-                        <h2 class="title">${data.title}</h2>
-                        <span class="date-badge">📅 ${data.date}</span>
-                        <p class="explanation">${data.explanation}</p>
-                        ${data.copyright ? `<p class="copyright">📸 Image Credit & Copyright: ${data.copyright}</p>` : ''}
-                    </div>
+        container.innerHTML = `
+            <div class="card">
+                <div class="media-container">
+                    ${mediaHTML}
                 </div>
-            `;
-            
-            // Update date picker
-            document.getElementById('datePicker').value = data.date;
-            
-            // Scroll to top smoothly
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function showLoading() {
-            document.getElementById('content').innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Exploring the universe...</p>
+                <div class="content">
+                    <h2 class="title">${data.title}</h2>
+                    <span class="date-badge">📅 ${data.date}</span>
+                    <p class="explanation">${data.explanation}</p>
+                    ${data.copyright ? `<p class="copyright">📸 Image Credit & Copyright: ${data.copyright}</p>` : ''}
                 </div>
-            `;
-        }
+            </div>
+        `;
+        
+        // Update date picker without triggering change event
+        datePicker.value = data.date;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-        function showError(message) {
-            document.getElementById('content').innerHTML = `
-                <div class="error">
-                    <p>❌ ${message}</p>
-                    <button onclick="loadToday()">Try Today's Picture</button>
-                    <button class="secondary" onclick="randomDate()" style="margin-left: 10px;">Try Random Date</button>
-                </div>
-            `;
-        }
+    function showLoading() {
+        document.getElementById('content').innerHTML = `
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Exploring the universe...</p>
+            </div>
+        `;
+    }
 
-        async function loadToday() {
-            showLoading();
-            document.getElementById('datePicker').value = '';
-            try {
-                const data = await fetchAPOD();
-                displayAPOD(data);
-            } catch (error) {
-                showError(error.message || 'Failed to load today\'s picture. Please try again later.');
-                console.error('Error:', error);
-            }
-        }
+    function showError(message) {
+        document.getElementById('content').innerHTML = `
+            <div class="error">
+                <p>❌ ${message}</p>
+                <button onclick="loadToday()">Try Today's Picture</button>
+                <button class="secondary" onclick="randomDate()" style="margin-left: 10px;">Try Random Date</button>
+            </div>
+        `;
+    }
 
-        async function loadSpecificDate() {
-            const date = document.getElementById('datePicker').value;
-            if (!date) {
-                alert('Please select a date first! 📅');
-                return;
-            }
-            
-            // Validate date is not in the future
-            const selectedDate = new Date(date);
-            const today = new Date();
-            if (selectedDate > today) {
-                alert('Cannot view future dates! Please select today or a past date. 🔮');
-                return;
-            }
-            
-            // Validate date is not before APOD started (June 16, 1995)
-            const apodStart = new Date('1995-06-16');
-            if (selectedDate < apodStart) {
-                alert('APOD started on June 16, 1995. Please select a date after that! 📅');
-                return;
-            }
-            
-            showLoading();
-            try {
-                const data = await fetchAPOD(date);
-                displayAPOD(data);
-            } catch (error) {
-                showError('No picture available for ' + date + '. Try another date!');
-            }
+    async function loadToday() {
+        showLoading();
+        datePicker.value = '';
+        try {
+            const data = await fetchAPOD();
+            displayAPOD(data);
+        } catch (error) {
+            showError(error.message || 'Failed to load today\'s picture. Please try again later.');
         }
+    }
 
-        function randomDate() {
-            // APOD started on June 16, 1995
-            const start = new Date('1995-06-16');
-            const end = new Date();
-            const randomTime = start.getTime() + Math.random() * (end.getTime() - start.getTime());
-            const randomDate = new Date(randomTime).toISOString().split('T')[0];
-            
-            document.getElementById('datePicker').value = randomDate;
+    async function loadSpecificDate() {
+        const date = datePicker.value;
+        if (!date) {
+            alert('Please select a date first! 📅');
+            return;
+        }
+        
+        const selectedDate = new Date(date);
+        const today = new Date();
+        if (selectedDate > today) {
+            alert('Cannot view future dates! Please select today or a past date. 🔮');
+            return;
+        }
+        
+        const apodStart = new Date('1995-06-16');
+        if (selectedDate < apodStart) {
+            alert('APOD started on June 16, 1995. Please select a date after that! 📅');
+            return;
+        }
+        
+        showLoading();
+        try {
+            const data = await fetchAPOD(date);
+            displayAPOD(data);
+        } catch (error) {
+            showError('No picture available for ' + date + '. Try another date!');
+        }
+    }
+
+    function randomDate() {
+        const start = new Date('1995-06-16');
+        const end = new Date();
+        const randomTime = start.getTime() + Math.random() * (end.getTime() - start.getTime());
+        const randomDate = new Date(randomTime).toISOString().split('T')[0];
+        
+        datePicker.value = randomDate;
+        loadSpecificDate();
+    }
+
+    // Change event only fires for real user interaction
+    datePicker.addEventListener('change', function(e) {
+        if (isPageLoaded && e.target.value) {
             loadSpecificDate();
         }
+    });
 
-        // Handle Enter key in date picker
-        document.getElementById('datePicker').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                loadSpecificDate();
-            }
-        });
-        
-        // Handle keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 't' && e.ctrlKey) {
-                e.preventDefault();
-                loadToday();
-            } else if (e.key === 'r' && e.ctrlKey) {
-                e.preventDefault();
-                randomDate();
-            }
-        });
-    </script>
-</body>
-</html>
+    // Handle Enter key
+    datePicker.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            loadSpecificDate();
+        }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 't' && e.ctrlKey) {
+            e.preventDefault();
+            loadToday();
+        } else if (e.key === 'r' && e.ctrlKey) {
+            e.preventDefault();
+            randomDate();
+        }
+    });
+</script>
