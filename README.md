@@ -14,6 +14,7 @@ A simple web app that displays NASA's Astronomy Picture of the Day (APOD) direct
 - CSS3
 - JavaScript
 - NASA APOD API
+- AWS Lambda
 - GitHub Pages
 
 ## How to Use
