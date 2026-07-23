@@ -15,6 +15,9 @@ A simple web app that displays NASA's Astronomy Picture of the Day (APOD) direct
 - JavaScript
 - NASA APOD API
 - AWS Lambda
+- Amazon API Gateway
+- Amazon CloudFront
+- Amazon S3
 - GitHub Pages
 
 ## How to Use
@@ -27,5 +30,24 @@ A simple web app that displays NASA's Astronomy Picture of the Day (APOD) direct
 - index.html - Main webpage and UI
 - README.md - Project information
 
+## AWS Free-Tier Improvement Plan
+If the images feel slow, the best low-cost AWS approach is to stop fetching NASA images directly from the browser and instead route them through a lightweight proxy that is cached closer to users.
+
+Recommended setup:
+1. Use AWS Lambda + API Gateway to proxy the NASA APOD API.
+2. Enable CloudFront in front of the API Gateway endpoint for faster global delivery.
+3. Optionally store the image responses in S3 or use CloudFront caching for repeated requests.
+4. Keep the frontend on GitHub Pages and point it to your AWS endpoint.
+
+Why this helps:
+- Lower latency because the request is served from a nearby AWS edge location.
+- Better caching for repeated APOD requests.
+- Free-tier friendly for small traffic and personal projects.
+
+To use it in this app:
+- Set the AWS_PROXY_URL value in index.html to your deployed API Gateway URL.
+- Deploy the sample Lambda function from lambda/apod-proxy.js.
+- Add a NASA API key in the Lambda environment variables for production use.
+
 ## Notes
-This project uses the public NASA APOD API and is designed to be hosted as a static website.
+This project uses the public NASA APOD API and is designed to be hosted as a static website. The frontend now supports an optional AWS proxy endpoint for faster image delivery.

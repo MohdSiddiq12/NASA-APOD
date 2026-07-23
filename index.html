@@ -279,7 +279,7 @@
     </div>
 
     <script>
-    const NASA_API_URL = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
+    const API_PROXY_URL = 'https://dywydfhhghp4r.cloudfront.net';
     const datePicker = document.getElementById('datePicker');
     datePicker.max = new Date().toISOString().split('T')[0];
     datePicker.value = '';
@@ -300,14 +300,24 @@
             .replace(/'/g, '&#39;');
     }
 
+    function buildAPODUrl(date = null) {
+        let url = API_PROXY_URL;
+        if (date && date.trim() !== '') {
+            const separator = url.includes('?') ? '&' : '?';
+            url += `${separator}date=${encodeURIComponent(date.trim())}`;
+        }
+        return url;
+    }
+
     async function fetchAPOD(date = null) {
         try {
-            let url = NASA_API_URL;
-            if (date && date.trim() !== '') {
-                url += `&date=${date.trim()}`;
-            }
+            const url = buildAPODUrl(date);
 
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
             const contentType = response.headers.get('content-type') || '';
             let data;
 
@@ -342,13 +352,17 @@
         const safeTitle = escapeHtml(data.title || 'NASA APOD');
         const safeExplanation = escapeHtml(data.explanation || '');
         const safeCopyright = escapeHtml(data.copyright || '');
-        const imageUrl = data.hdurl || data.url || '';
+        const imageUrl = data.imageUrl || data.hdurl || data.url || '';
+        const safeImageUrl = escapeHtml(imageUrl);
 
         let mediaHTML = '';
         if (data.media_type === 'image') {
-            mediaHTML = `<img src="${imageUrl}" 
+            mediaHTML = `<img src="${safeImageUrl}" 
                               alt="${safeTitle}" 
-                              onclick="window.open('${imageUrl}', '_blank')"
+                              loading="eager"
+                              decoding="async"
+                              referrerpolicy="no-referrer"
+                              onclick="window.open('${safeImageUrl}', '_blank')"
                               title="Click to view full size">`;
         } else if (data.media_type === 'video') {
             let videoUrl = data.url;
