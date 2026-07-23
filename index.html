@@ -352,7 +352,7 @@
         const safeTitle = escapeHtml(data.title || 'NASA APOD');
         const safeExplanation = escapeHtml(data.explanation || '');
         const safeCopyright = escapeHtml(data.copyright || '');
-        const imageUrl = data.imageUrl || data.hdurl || data.url || '';
+        const imageUrl = data.hdurl || data.url || '';
         const safeImageUrl = escapeHtml(imageUrl);
 
         let mediaHTML = '';
